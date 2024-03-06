@@ -50,12 +50,15 @@ int main() {
 		return -1;
 	}
 
-	//enable opengl depth test
+	//enable opengl depth test, blend, alpha params
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	//build and compile shaders
 	Shader shader("shader.vs", "shader.fs");
 	Shader lightShader("lightingShader.vs", "lightingShader.fs");
+	Shader blendShader("blendShader.vs", "blendShader.fs");
 
 	//cube vertices
 	float vertices[] = {
@@ -103,6 +106,28 @@ int main() {
 		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f,
 	};
 
+	float planeVertices[] = {
+        // positions                            // texture Coords 
+         5.0f, -0.5f,  5.0f, 1.0f, 1.0f, 1.0f,  2.0f, 0.0f,
+        -5.0f, -0.5f,  5.0f, 1.0f, 1.0f, 1.0f,  0.0f, 0.0f,
+        -5.0f, -0.5f, -5.0f, 1.0f, 1.0f, 1.0f,  0.0f, 2.0f,
+
+         5.0f, -0.5f,  5.0f, 1.0f, 1.0f, 1.0f,  2.0f, 0.0f,
+        -5.0f, -0.5f, -5.0f, 1.0f, 1.0f, 1.0f,  0.0f, 2.0f,
+         5.0f, -0.5f, -5.0f, 1.0f, 1.0f, 1.0f,  2.0f, 2.0f
+    };
+
+	float transparentVertices[] = {
+        // positions         				// texture Coords (swapped y coordinates because texture is flipped upside down)
+        0.0f,  0.5f,  0.0f, 1.0f, 1.0f, 1.0f,  0.0f,  0.0f,
+        0.0f, -0.5f,  0.0f, 1.0f, 1.0f, 1.0f,  0.0f,  1.0f,
+        1.0f, -0.5f,  0.0f, 1.0f, 1.0f, 1.0f,  1.0f,  1.0f,
+
+        0.0f,  0.5f,  0.0f, 1.0f, 1.0f, 1.0f,  0.0f,  0.0f,
+        1.0f, -0.5f,  0.0f, 1.0f, 1.0f, 1.0f,  1.0f,  1.0f,
+        1.0f,  0.5f,  0.0f, 1.0f, 1.0f, 1.0f,  1.0f,  0.0f
+    };
+
 	// world space positions of our cubes
 	glm::vec3 cubePositions[] = {
 		glm::vec3(0.0f,  0.0f-2.0f,  0.0f),
@@ -144,16 +169,43 @@ int main() {
 	glGenVertexArrays(1, &lightVAO);
 	glBindVertexArray(lightVAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
 
 	//setup vertex pointers
 	setupVertexPointers();
 
+	unsigned int planeVAO, planeVBO;
+    glGenVertexArrays(1, &planeVAO);
+    glGenBuffers(1, &planeVBO);
+    glBindVertexArray(planeVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), &planeVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+
+	//setup vertex pointers
+	setupVertexPointers();
+
+	// transparent VAO
+    unsigned int transparentVAO, transparentVBO;
+    glGenVertexArrays(1, &transparentVAO);
+    glGenBuffers(1, &transparentVBO);
+    glBindVertexArray(transparentVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, transparentVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(transparentVertices), transparentVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    
+	//setup vertex pointers
+	setupVertexPointers();
+
 	//load textures using function
-	GLuint woodTexture, leavesTexture;
+	//load textures using function
+	GLuint woodTexture, leavesTexture, windowTexture;
 	//h-flip on load
 	stbi_set_flip_vertically_on_load(true);
-	woodTexture = loadTexture("/img/wood.png");
-	leavesTexture = loadTexture("/img/leaves.png");
+	woodTexture = loadTexture("img/wood.png");
+	leavesTexture = loadTexture("img/leaves.png");
+	windowTexture = loadTexture("img/window.png");
 
 	shader.use();
 	//shader.setInt("woodTexture", 0);
@@ -233,6 +285,19 @@ int main() {
 		//draw glowing cube
 		glBindVertexArray(lightVAO);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		//draw transparency test plane
+		blendShader.use();
+		blendShader.setMat4("projection", projection);
+		blendShader.setMat4("view", view);
+		// Render the window
+        glBindVertexArray(transparentVAO);
+        glBindTexture(GL_TEXTURE_2D, windowTexture);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, -2.0f));
+		model = glm::scale(model, glm::vec3(2.0f));
+        blendShader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
 
 		//====================================
 
