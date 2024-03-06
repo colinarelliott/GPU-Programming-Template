@@ -56,9 +56,9 @@ int main() {
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	//build and compile shaders
-	Shader shader("shader.vs", "shader.fs");
-	Shader lightShader("lightingShader.vs", "lightingShader.fs");
-	Shader blendShader("blendShader.vs", "blendShader.fs");
+	Shader shader("shaders/shader.vs", "shaders/shader.fs");
+	Shader lightShader("shaders/lightingShader.vs", "shaders/lightingShader.fs");
+	Shader blendShader("shaders/blendShader.vs", "shaders/blendShader.fs");
 
 	//cube vertices
 	float vertices[] = {
